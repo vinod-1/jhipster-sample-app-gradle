@@ -22,9 +22,9 @@ jobs:
       - image: circleci/openjdk:8u222-jdk-stretch-node-browsers
     steps:
       - checkout
-      - run:
-          name: Login to DockerHub
-          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+#      - run:
+#          name: Login to DockerHub
+#          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
       - run: ./gradlew -Pprod clean bootJar
       - run: ls build/libs
 #      - run: docker push vinodplank/junacards:$CIRCLE_BUILD_NUM
