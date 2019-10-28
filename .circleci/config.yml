@@ -31,6 +31,10 @@ jobs:
             sudo pip install awsebcli --upgrade
       - run: ./gradlew -Pprod clean bootJar
       - run: ls build/libs
+      - run:
+          name: Deploying Client to S3 and Cloudfront
+          command: |
+            aws s3 sync build/libs/* s3://testplank --delete
 #      - run: docker push vinodplank/junacards:$CIRCLE_BUILD_NUM
 #      - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "sed -i 's/junacards:[0-9][0-9]*/junacards:$CIRCLE_BUILD_NUM/g' ~/CircleCI/app.yml"
 #      - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "/bin/bash ~/CircleCI/deploy.sh"
