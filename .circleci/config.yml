@@ -1,4 +1,4 @@
-version: 2.1
+version: 2
 jobs:
   build:
     docker:
@@ -15,9 +15,28 @@ jobs:
             - v1-dependencies-{{ checksum "build.gradle" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
+  
 #deployment
       
   publish:
+    docker:
+      - image: circleci/openjdk:8u222-jdk-stretch-node-browsers
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - add_ssh_keys:
+          fingerprints: "SHA256:3NjaS3CruXShRtLGyu3cyF/Wp0zpmle2GlOz2NtoMRo"
+      - run:
+          name: Login to DockerHub
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+      - run: ./gradlew -Pprod bootJar jibDockerBuild
+      - run: docker tag junacards vinodplank/junacards:$CIRCLE_BUILD_NUM
+      - run: docker push vinodplank/junacards:$CIRCLE_BUILD_NUM
+      - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "sed -i 's/junacards:[0-9][0-9]*/junacards:$CIRCLE_BUILD_NUM/g' ~/CircleCI/app.yml"
+      - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "/bin/bash ~/CircleCI/deploy.sh"
+  
+  publish_jar:
     docker:
       - image: circleci/openjdk:8u222-jdk-stretch-node-browsers
     steps:
@@ -30,41 +49,35 @@ jobs:
             sudo apt-get install -y python-pip python-dev build-essential
             sudo pip install awsebcli --upgrade
       - run: ./gradlew -Pprod clean bootJar
-      - run: ls build/libs
+      - run: mv build/libs
+      
       - run:
           name: Deploying Client to S3 and Cloudfront
           command: |
             aws s3 sync build/libs/ s3://testplank --region ap-south-1
-#      - run: docker push vinodplank/junacards:$CIRCLE_BUILD_NUM
-#      - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "sed -i 's/junacards:[0-9][0-9]*/junacards:$CIRCLE_BUILD_NUM/g' ~/CircleCI/app.yml"
-#      - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "/bin/bash ~/CircleCI/deploy.sh"
-
- # publish:
- #   docker:
- #     - image: circleci/openjdk:8u222-jdk-stretch-node-browsers
- #   steps:
- #     - checkout
- #     - setup_remote_docker:
- #         docker_layer_caching: true
- #     - add_ssh_keys:
- #         fingerprints: "SHA256:3NjaS3CruXShRtLGyu3cyF/Wp0zpmle2GlOz2NtoMRo"
- #     - run:
- #         name: Login to DockerHub
- #         command: docker login -u $DOCKER_USER -p $DOCKER_PASS
- #     - run: ./gradlew -Pprod bootJar jibDockerBuild
- #     - run: docker tag junacards vinodplank/junacards:$CIRCLE_BUILD_NUM
- #     - run: docker push vinodplank/junacards:$CIRCLE_BUILD_NUM
- #     - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "sed -i 's/junacards:[0-9][0-9]*/junacards:$CIRCLE_BUILD_NUM/g' ~/CircleCI/app.yml"
- #     - run: ssh -o StrictHostKeyChecking=no ubuntu@13.235.249.241 "/bin/bash ~/CircleCI/deploy.sh"
 
 workflows:
   version: 2
   build_and_test:
     jobs:
       - build
+#      - test-java:
+#          requires:
+#            - build
+#      - test-yarn:
+#          requires:
+#            - build
       - publish:
           requires:
             - build
+#            - test-java
+          filters:
+            branches:
+              only: master
+       - publish_jar:
+          requires:
+            - build
+#            - test-java
           filters:
             branches:
               only: master
