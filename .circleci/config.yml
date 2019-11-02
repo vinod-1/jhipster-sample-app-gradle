@@ -67,5 +67,6 @@ workflows:
       - publish-github-release:
           requires:
             - publish_jar
+          filters:
             tags:
               only: /^\d+\.\d+\.\d+$/
