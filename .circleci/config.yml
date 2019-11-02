@@ -68,8 +68,7 @@ workflows:
                 - development
       - publish_jar:
           requires:
-            - test-yarn
-            - test-java
+            - build
           filters:
             branches:
               only:
