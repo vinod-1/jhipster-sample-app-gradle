@@ -62,6 +62,6 @@ workflows:
               only:
                 - master
                 - development
-      - publish-github-release
+      - publish-github-release:
           requires:
             - publish_jar
