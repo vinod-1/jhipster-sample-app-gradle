@@ -62,6 +62,10 @@ workflows:
               only:
                 - master
                 - development
+            tags:
+              only: /^\d+\.\d+\.\d+$/
       - publish-github-release:
           requires:
             - publish_jar
+            tags:
+              only: /^\d+\.\d+\.\d+$/
