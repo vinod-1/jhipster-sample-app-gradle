@@ -13,5 +13,5 @@ workflows:
       - publish
           filters
             branches
-              only: 
+              only 
                 - master #Change or Update whatever branch needs to be published
