@@ -2,71 +2,32 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8u222-jdk-stretch-node-browsers
+      - image: circleci/openjdk:8u222-jdk-stretch
     working_directory: ~/repo
-    environment:
-      GRADLE_OPTS: -Xmx3g
-      JVM_OPTS: -Xmx3g
     steps:
       - checkout
-
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "build.gradle" }}
+            - m2-{{ checksum "build.gradle" }}
             # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
-  #Publish Jar to aws s3
-  publish_jar:
+            - m2-
+  publish:
     docker:
-      - image: circleci/openjdk:8u222-jdk-stretch-node-browsers
+      - image: circleci/openjdk:8u222-jdk-stretch
+    working_directory: ~/repo
     steps:
       - checkout
-      - run:
-          name: Installing AWS CLI
-          command: |
-            sudo apt-get -y -qq update
-            sudo apt-get install -y awscli
-            sudo apt-get install -y python-pip python-dev build-essential
-            sudo pip install awsebcli --upgrade
-      - run: ./gradlew -Pprod clean bootJar 
-  #    - run: mv build/libs/juna-cards-0.0.1-SNAPSHOT.jar build/libs/juna-cards-$CIRCLE_BUILD_NUM.jar
-      - run:
-          name: Deploying Jar to S3
-          command: |
-            aws s3 sync build/libs/ s3://$BUCKET --region ap-south-1
-  
-  publish-github-release:
-    docker:
-      - image: cibuilds/github:0.10
-    steps:
-      - attach_workspace:
-          at: ./artifacts
-      - run:
-          name: "Publish Release on GitHub"
-          command: |
-            VERSION=$CIRCLE_BUILD_NUM
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
-
-
+      - run: ./gradlew clean fatJar publish
+ 
 workflows:
   version: 2
   build_and_test:
     jobs:
       - build
-      - publish_jar:
+      - publish:
           requires:
             - build
           filters:
             branches:
-              only:
+              only: 
                 - master
-                - development
-            tags:
-              only: /^\d+\.\d+\.\d+$/
-      - publish-github-release:
-          requires:
-            - publish_jar
-          filters:
-            tags:
-              only: /^\d+\.\d+\.\d+$/
