@@ -11,7 +11,7 @@ jobs:
 workflows:
   version: 2
       - publish
-          filters:
+          filters
             branches:
               only: 
                 - master #Change or Update whatever branch needs to be published
